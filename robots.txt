@@ -1,4 +1,4 @@
 User-agent: *
 Disallow:
 
-Sitemap: https://CalvinKCao.github.io/sitemap.xml
+Sitemap: https://CalvinKCao.github.io/site//sitemap.xml
