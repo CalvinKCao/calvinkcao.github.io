@@ -11,7 +11,7 @@ html[data-theme="dark"] {
 }
 
 body {
-  font-family: "Lora", Georgia, serif !important;
+  font-family: "Fira Sans", system-ui, sans-serif !important;
 }
 
 h1,
@@ -20,5 +20,5 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: "Roboto Mono", ui-monospace, monospace !important;
+  font-family: "Fira Code", ui-monospace, monospace !important;
 }

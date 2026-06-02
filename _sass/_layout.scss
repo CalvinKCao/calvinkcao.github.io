@@ -8,7 +8,7 @@ body {
   padding-bottom: 70px;
   color: var(--global-text-color);
   background-color: var(--global-bg-color);
-  font-family: "Lora", Georgia, serif;
+  font-family: "Fira Sans", system-ui, sans-serif;
 
   h1,
   h2,
@@ -17,7 +17,7 @@ body {
   h5,
   h6 {
     scroll-margin-top: 66px;
-    font-family: "Roboto Mono", ui-monospace, monospace;
+    font-family: "Fira Code", ui-monospace, monospace;
   }
 }
 
