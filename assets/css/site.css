@@ -1,17 +1,17 @@
 /* Site accent and typography overrides (loads after tailwind.css and main.css). */
 
 :root {
-  --global-theme-color: #4a6741;
-  --global-hover-color: #4a6741;
+  --global-theme-color: #4c6e3c;
+  --global-hover-color: #4c6e3c;
 }
 
 html[data-theme="dark"] {
-  --global-theme-color: #4a6741;
-  --global-hover-color: #4a6741;
+  --global-theme-color: #4c6e3c;
+  --global-hover-color: #4c6e3c;
 }
 
 body {
-  font-family: "Fira Sans", system-ui, sans-serif !important;
+  font-family: "JetBrains Mono", ui-monospace, monospace !important;
 }
 
 h1,
@@ -20,5 +20,5 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: "Fira Code", ui-monospace, monospace !important;
+  font-family: "Lora", Georgia, serif !important;
 }
