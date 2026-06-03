@@ -11,7 +11,7 @@ html[data-theme="dark"] {
 }
 
 body {
-  font-family: "IBM Plex Sans", system-ui, sans-serif !important;
+  font-family: "Fira Code", ui-monospace, monospace !important;
 }
 
 h1,
