@@ -10,7 +10,7 @@ thumbnail: assets/img/9.jpg
 
 > **TLDR:** Building on a recent paper, I wanted to see if reinforcement learning agents build internal models of their partners during cooperative tasks. I built a 9x7 gridworld where a linear probe successfully decoded one agent tracking another's hidden intent. When I tried scaling this pipeline to more complicated tasks like Overcooked, architectural mismatch broke the interpretability. Environment incentives and recurrent state shapes dictate whether a multi-agent system is actually interpretable and will inform the next steps of this project.
 
-# Agent coordination is a black box
+## Agent coordination
 
 Humans are naturally great at reading each other. You watch a coworker walk toward the printer and instantly infer what they're trying to do. Reinforcement learning agents coordinate in shared environments, but we don't have a clear mechanistic understanding of how. Policies are usually black boxes mapping observations to actions.
 
@@ -27,13 +27,13 @@ Bush et al. (2025) recently provided the first mechanistic evidence that model-f
 
 I wanted to apply this idea to multi-agent settings. If Agent A coordinates with Agent B, does Agent A's hidden state encode a decodable, belief-like variable about Agent B's intent?
 
-# A quick proof of concept
+## Quick proof of concept
 
 I built a simple 9x7 grid-based world. Two agents spawn in a shared bottom zone and must navigate to separate goals located at the end of three possible vertical corridors, left/centre/right; L=0, C=1, and R=2.
 
 <div class="row mt-3">
     <div class="col-sm mt-3 mt-md-0">
-        {% include figure.liquid loading="eager" path="assets/posts/26-05-19-track-intent/3-corridor.png" class="img-fluid rounded z-depth-1" zoomable=false %}
+        {% include figure.liquid loading="eager" path="assets/posts/26-05-19-track-intent/3-corridor.svg" class="img-fluid rounded z-depth-1" zoomable=false %}
     </div>
 </div>
 <div class="caption">
@@ -46,7 +46,7 @@ I trained the agents using the CTDE-lite variant of Multi-Agent PPO with paramet
 
 Standard PPO implementations usually truncate gradients at episode boundaries. If you want a ConvLSTM to accumulate evidence about a partner, you have to use Backpropagation Through Time across the full rollout. So, I ran 20-step rollouts and calculated advantages using Generalized Advantage Estimation.
 
-# Probing hidden states
+## Probing hidden states
 
 Bush et al. probed their agent at the level of individual action plans. At each grid cell, they asked whether the agent planned to step onto the square or push a box from it. The granularity works in Sokoban because the objective is concrete and spatially decomposable into single-step box displacements.
 
@@ -80,7 +80,7 @@ The most likely explanation is geometric. Logistic regression finds the directio
 
 Even so, I decided to treat the F1 result as a positive existence proof and move on to scaling. An F1 of 0.903 by step five establishes the hidden state genuinely contains recoverable information about partner intent. Refining the intervention method on a nine-by-seven grid felt like diminishing returns when the more pressing question was whether this interpretability pipeline would survive a more complex environment at all.
 
-# Scaling up, breaking down
+## Scaling up, breaking down
 
 I wanted to replicate this in a more complex setting. My first thought was multi-agent Boxoban, but quickly found that when you train two agents on standard Sokoban levels designed for single players, the joint policy collapses. One agent solves the puzzle while the second agent stands entirely still in a corner to avoid incurring step penalties. As far as I could tell, no 2-player Sokoban level datasets existed.
 
@@ -99,19 +99,19 @@ I used pre-trained PPO checkpoints from the ZSC-Eval model zoo on the random0 la
 
 <div class="row mt-3">
     <div class="col-sm mt-3 mt-md-0">
-        {% include figure.liquid loading="eager" path="assets/posts/26-05-19-track-intent/architecture_comparison.png" class="img-fluid rounded z-depth-1" zoomable=false %}
+        {% include figure.liquid loading="eager" path="assets/posts/26-05-19-track-intent/architecture_comparison.svg" class="img-fluid rounded z-depth-1" zoomable=false %}
     </div>
 </div>
 
 This flat representation also ruined any chance of clean causal interventions. In the single-agent Sokoban paper, the authors probed specific spatial coordinates. In my Overcooked setup, the 64-dimensional vector represents the entire state. I extracted the weights corresponding to the dish concept and injected it into the ego agent. The team score dropped by 20 points, but in terms of understanding why at a more granular level, I was stuck. Without spatial grounding, it is impossible to isolate what the agent perceived. The intervention forces the agent into a generic dish mode without specifying where the dish is located or who is holding it.
 
-# The path forward
+## The path forward
 
 I think moving forward I have two options. 1) I could return to the ConvLSTM architecture. Mechanistic interpretability in spatial environments given current techniques requires the hidden state to map directly to grid cells. I'll need to write a procedural generation algorithm to build Sokoban levels that strictly require two players to push separate boxes simultaneously. 2) I could try to use sparse autoencoders to see if I can decompose the flat 64-element GRU representation into cell-specific planning features.
 
 Another thing I realized is that even if the ConvLSTM architecture or SAEs work, l need to train the agents without parameter sharing. Using MAPPO with shared weights introduces a massive confound for theory-of-mind research. If both agents share the same neural network, any decodable intent is potentially an artifact of the shared parameters rather than genuine observation-based inference. Setting up RL environments for interpretability research demands rigorous engineering, and I have some rebuilding to do.
 
-# Sources
+## References
 
 Bush, T., Chung, S., Anwar, U., Garriga-Alonso, A., & Krueger, D. (2025). Interpreting Emergent Planning in Model-free Reinforcement Learning.
 
