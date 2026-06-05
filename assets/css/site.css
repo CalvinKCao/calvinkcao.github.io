@@ -11,7 +11,14 @@ html[data-theme="dark"] {
 }
 
 body {
-  font-family: "Noto Sans", system-ui, sans-serif !important;
+  font-family: "Lato", system-ui, sans-serif !important;
+  font-weight: 400 !important;
+}
+
+img,
+figure img,
+.z-depth-1 {
+  box-shadow: none !important;
 }
 
 h1,
