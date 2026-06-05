@@ -1,0 +1,213 @@
+<!DOCTYPE html> <html lang="en"> <head> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> <meta charset="utf-8"> <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"> <meta http-equiv="X-UA-Compatible" content="IE=edge"> <title> Do RL Agents Track Each Other's Intent? (Part 1) | Calvin K. Cao </title> <meta name="author" content="Calvin K. Cao"> <meta name="description" content="Linear probes decode partner intent from RL hidden states, but architecture determines whether any of it is interpretable."> <meta name="keywords" content="jekyll, jekyll-theme, academic-website, portfolio-website"> <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' data: https:; media-src 'self' https:; frame-src 'self' https:; connect-src 'self' https:;"> <style>
+  :root {
+    --max-content-width: 930px;
+  }
+</style> <link rel="preconnect" href="https://fonts.googleapis.com"> <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin> <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;family=Noto+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&amp;display=swap"> <link rel="stylesheet" href="/assets/css/tailwind.css?v=50c64c15cbb9fd1ce6056fdb8bcb4b62"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css" integrity="sha256-MVopmdyC2tYTiJ8wlktf0uh0v4NgT+vNdyVFepi7Q0c=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/academicons@1.9.5/css/academicons.min.css" integrity="sha256-SzrCOBJbGVFMahewkgjwnApaV2+av1DwMAA+/QGLyZw=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/scholar-icons@1.0.3/css/scholar-icons.css" integrity="sha256-VY3hHVj/hNX3fYG6wtbA6TcKJQl7+FthzGSyIB64klY=" crossorigin="anonymous"> <link defer rel="stylesheet" href="/assets/css/jekyll-pygments-themes-github.css?v=591dab5a4e56573bf4ef7fd332894c99" media="" id="highlight_theme_light"> <link rel="shortcut icon" href="data:image/svg+xml,&lt;svg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%20100%20100%22&gt;&lt;text%20y=%22.9em%22%20font-size=%2290%22&gt;%E2%9A%9B%EF%B8%8F&lt;/text&gt;&lt;/svg&gt;"> <link rel="stylesheet" href="/assets/css/main.css?v=f0b101217084a90093badfe99ff9a7d1"> <link rel="canonical" href="https://calvinkcao.github.io/blog/2026/track-intent/"> <script src="/assets/js/theme.js?v=7af685e2ba20b37fef545c97b8064050"></script> <link defer rel="stylesheet" href="/assets/css/jekyll-pygments-themes-native.css?v=5847e5ed4a4568527aa6cfab446049ca" media="none" id="highlight_theme_dark"> <script>
+    initTheme();
+  </script> <link rel="stylesheet" href="/assets/css/site.css?v=d4ab7126c0ae1a333b6f416db557c995"> </head> <body class="fixed-top-nav "> <header> <nav id="navbar" class="navbar navbar-light navbar-expand-sm fixed-top" role="navigation"> <div class="container"> <a class="navbar-brand title font-weight-lighter" href="/"> <span class="font-weight-bold">Calvin</span> K. Cao </a> <button class="navbar-toggler collapsed navbar-toggler-main" type="button" data-nav-toggle="navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"> <span class="sr-only">Toggle navigation</span> <span class="icon-bar top-bar"></span> <span class="icon-bar middle-bar"></span> <span class="icon-bar bottom-bar"></span> </button> <div class="collapse navbar-collapse navbar-collapse-main" id="navbarNav"> <ul class="navbar-nav navbar-menu-list flex-nowrap"> <li class="nav-item "> <a class="nav-link" href="/">about </a> </li> <li class="nav-item active"> <a class="nav-link" href="/blog/">blog </a> </li> <li class="nav-item "> <a class="nav-link" href="/cv/">CV </a> </li> <li class="nav-item"> <button id="search-toggle" type="button" title="Search" aria-label="Open search"> <span class="nav-link">ctrl k <i class="fa-solid fa-magnifying-glass"></i></span> </button> </li> <li class="toggle-container"> <button id="light-toggle" type="button" title="Change theme" aria-label="Change color theme"> <i class="fa-half-sun-moon" id="light-toggle-system"></i> <i class="fa-solid fa-moon" id="light-toggle-dark"></i> <i class="fa-solid fa-sun" id="light-toggle-light"></i> </button> </li> </ul> </div> </div> </nav> <progress id="progress" value="0"> <div class="progress-container"> <span class="progress-bar"></span> </div> </progress> </header> <div class="container mt-5" role="main"> <div class="post"> <header class="post-header"> <h1 class="post-title">Do RL Agents Track Each Other's Intent? (Part 1)</h1> <p class="post-meta"> Created on May 19, 2026 </p> <p class="post-tags"> <a href="/blog/2026"> <i class="fa-solid fa-calendar fa-sm"></i> 2026 </a>   ·   <a href="/blog/tag/formatting"> <i class="fa-solid fa-hashtag fa-sm"></i> formatting</a>   <a href="/blog/tag/images"> <i class="fa-solid fa-hashtag fa-sm"></i> images</a>   ·   <a href="/blog/category/quick-experiments"> <i class="fa-solid fa-tag fa-sm"></i> quick-experiments</a> </p> </header> <article class="post-content"> <div id="markdown-content"> <blockquote> <p><strong>TLDR:</strong> Building on a recent paper, I wanted to see if reinforcement learning agents build internal models of their partners during cooperative tasks. I built a 9x7 gridworld where a linear probe successfully decoded one agent tracking another’s hidden intent. When I tried scaling this pipeline to more complicated tasks like Overcooked, architectural mismatch broke the interpretability. Environment incentives and recurrent state shapes dictate whether a multi-agent system is actually interpretable and will inform the next steps of this project.</p> </blockquote> <h1 id="agent-coordination-is-a-black-box">Agent coordination is a black box</h1> <p>Humans are naturally great at reading each other. You watch a coworker walk toward the printer and instantly infer what they’re trying to do. Reinforcement learning agents coordinate in shared environments, but we don’t have a clear mechanistic understanding of how. Policies are usually black boxes mapping observations to actions.</p> <div class="row mt-3"> <div class="col-sm mt-3 mt-md-0"> <figure> <picture> <source class="responsive-img-srcset" srcset="/assets/posts/26-05-19-track-intent/bush-planning-480.webp 480w,/assets/posts/26-05-19-track-intent/bush-planning-800.webp 800w,/assets/posts/26-05-19-track-intent/bush-planning-1400.webp 1400w," type="image/webp" sizes="95vw"></source> <img src="/assets/posts/26-05-19-track-intent/bush-planning.png" class="img-fluid rounded z-depth-1" width="100%" height="auto" loading="eager" onerror="this.onerror=null; document.querySelectorAll('.responsive-img-srcset').forEach(function (n) { n.remove(); });"> </picture> </figure> </div> </div> <div class="caption"> Bush et. al (2025) find mechanistic evidence of agents planning movement (top) and box pushes (bottom) in a Sokoban environment. Adapted from original paper. </div> <p>Bush et al. (2025) recently provided the first mechanistic evidence that model-free RL agents learn to plan internally. They studied a Deep Repeated ConvLSTM agent playing solo puzzle game Sokoban. Because a ConvLSTM maintains a 3D structure that allows for easy matching of features game board squares, the authors could apply linear probes to specific cell states and read out exactly where the agent planned to move and push boxes.</p> <p>I wanted to apply this idea to multi-agent settings. If Agent A coordinates with Agent B, does Agent A’s hidden state encode a decodable, belief-like variable about Agent B’s intent?</p> <h1 id="a-quick-proof-of-concept">A quick proof of concept</h1> <p>I built a simple 9x7 grid-based world. Two agents spawn in a shared bottom zone and must navigate to separate goals located at the end of three possible vertical corridors, left/centre/right; L=0, C=1, and R=2.</p> <div class="row mt-3"> <div class="col-sm mt-3 mt-md-0"> <figure> <picture> <source class="responsive-img-srcset" srcset="/assets/posts/26-05-19-track-intent/3-corridor-480.webp 480w,/assets/posts/26-05-19-track-intent/3-corridor-800.webp 800w,/assets/posts/26-05-19-track-intent/3-corridor-1400.webp 1400w," type="image/webp" sizes="95vw"></source> <img src="/assets/posts/26-05-19-track-intent/3-corridor.png" class="img-fluid rounded z-depth-1" width="100%" height="auto" loading="eager" onerror="this.onerror=null; document.querySelectorAll('.responsive-img-srcset').forEach(function (n) { n.remove(); });"> </picture> </figure> </div> </div> <div class="caption"> Layout of the three-corridor environment on a 9x7 grid, featuring spawn zone at bottom, three bottleneck corridors in the middle, and three goal zones across the top (L, C, R). The green trajectories illustrate a successful trial where agents coordinate to reach separate goals without bumping together. The red trajectories represent a failure case where both agents both try going through the centre bottleneck. </div> <p>At the start of every episode, each receives a private goal assignment. Agent A receives its own goal as a 3D one-hot vector, but it never observes Agent B’s. Agent A has to infer it by watching Agent B move. If they enter a bottleneck simultaneously, they collide and get penalized.</p> <p>I trained the agents using the CTDE-lite variant of Multi-Agent PPO with parameter sharing between both agents. Since the usual feedforward policies can’t track partial observables over time, I used a modified version of the DRC(3,3) architecture. The convolutional encoder preserves the spatial dimensions with padding. The state $h$ stays a $32 \times 7 \times 9$ tensor. I also used a pool-and-inject mechanism that globally pools $h$, passes it through a linear layer, and adds it back before the gate computation.</p> <p>Standard PPO implementations usually truncate gradients at episode boundaries. If you want a ConvLSTM to accumulate evidence about a partner, you have to use Backpropagation Through Time across the full rollout. So, I ran 20-step rollouts and calculated advantages using Generalized Advantage Estimation.</p> <h1 id="probing-hidden-states">Probing hidden states</h1> <p>Bush et al. probed their agent at the level of individual action plans. At each grid cell, they asked whether the agent planned to step onto the square or push a box from it. The granularity works in Sokoban because the objective is concrete and spatially decomposable into single-step box displacements.</p> <p>My planned environments for the next phase, including Overcooked, have messier spatial semantics. The reward structure is more abstract: multi-step food preparation chains replace the push-box-onto-goal signal, and individual tiles carry less interpretable meaning. So rather than probing at the level of single-step moves, I wanted to probe for something higher-level: which corridor would Agent B choose to navigate toward? This is closer to a belief or intent variable than an action plan, and felt like a more appropriate target for environments where objectives are compositional. This turned out to be overly optimistic, for reasons I will get to.</p> <p>I collected greedy rollouts and trained 1x1 logistic regression probes on the layer-D cell state at specific timesteps. I used L-BFGS with 2000 iterations to predict the partner’s target corridor. At step zero, the macro F1 score was $0.344$, matching random chance. By step five it climbed to $0.903$. The agent was tracking its partner’s intent as the episode progressed.</p> <div class="row mt-3"> <div class="col-sm mt-3 mt-md-0"> <figure> <picture> <source class="responsive-img-srcset" srcset="/assets/posts/26-05-19-track-intent/confusion_matrix-480.webp 480w,/assets/posts/26-05-19-track-intent/confusion_matrix-800.webp 800w,/assets/posts/26-05-19-track-intent/confusion_matrix-1400.webp 1400w," type="image/webp" sizes="95vw"></source> <img src="/assets/posts/26-05-19-track-intent/confusion_matrix.png" class="img-fluid rounded z-depth-1" width="100%" height="auto" loading="eager" onerror="this.onerror=null; document.querySelectorAll('.responsive-img-srcset').forEach(function (n) { n.remove(); });"> </picture> </figure> </div> </div> <div class="caption"> Matrix of accuracy of linear probe trained to predict the partner agent's intended corridor (Left, Center, Right) from the model's internal activations at step 4. Strong diagonal values and overall 75.5% accuracy demonstrate that the agent successfully learns to infer/represent its partner's goals. </div> <p>To test whether the agent actively relied on this representation, I attempted a causal intervention. I extracted the weight vector $W_k$ from the trained probe, scaled it by a factor of $\alpha=1.0$ to match the norm of the cell state, and injected it back into Agent A’s network during a live episode.</p> <p>The intervention failed to alter the long-horizon policy. The immediate action distribution shifted slightly; I measured a positive KL divergence at the exact step of injection, but the agent ignored the injected belief.</p> <div class="row mt-3"> <div class="col-sm mt-3 mt-md-0"> <figure> <picture> <source class="responsive-img-srcset" srcset="/assets/posts/26-05-19-track-intent/intervention_kl-480.webp 480w,/assets/posts/26-05-19-track-intent/intervention_kl-800.webp 800w,/assets/posts/26-05-19-track-intent/intervention_kl-1400.webp 1400w," type="image/webp" sizes="95vw"></source> <img src="/assets/posts/26-05-19-track-intent/intervention_kl.png" class="img-fluid rounded z-depth-1" width="100%" height="auto" loading="eager" onerror="this.onerror=null; document.querySelectorAll('.responsive-img-srcset').forEach(function (n) { n.remove(); });"> </picture> </figure> </div> </div> <div class="caption"> Policy shift (KL divergence) following hidden state intervention. Only injections targeting the RIGHT corridor produced a behavioral shift stronger than a random control vector (1.35×). </div> <p>The most likely explanation is geometric. Logistic regression finds the direction most predictive of a concept in a linear sense, but this is not necessarily the direction the policy reads. The cell state feeds into subsequent gate activations nonlinearly before hitting a final 2016 to 256 linear projection. The policy’s active decision subspace occupies a different region of the high-dimensional tensor than the one my probe identified. The policy likely encoded partner intent diffusely across many weakly correlated dimensions rather than in a single clean direction. A corridor-choice variable is more distal from any specific gate computation than an action-level variable, so the orthogonality problem is worse for high-level goal probes like mine than for the action-level probes in Bush.</p> <p>Even so, I decided to treat the F1 result as a positive existence proof and move on to scaling. An F1 of 0.903 by step five establishes the hidden state genuinely contains recoverable information about partner intent. Refining the intervention method on a nine-by-seven grid felt like diminishing returns when the more pressing question was whether this interpretability pipeline would survive a more complex environment at all.</p> <h1 id="scaling-up-breaking-down">Scaling up, breaking down</h1> <p>I wanted to replicate this in a more complex setting. My first thought was multi-agent Boxoban, but quickly found that when you train two agents on standard Sokoban levels designed for single players, the joint policy collapses. One agent solves the puzzle while the second agent stands entirely still in a corner to avoid incurring step penalties. As far as I could tell, no 2-player Sokoban level datasets existed.</p> <p>To bypass the compute bottleneck of training a custom curriculum, I pivoted to the Overcooked task (Carroll et al.).</p> <div class="row mt-3"> <div class="col-sm mt-3 mt-md-0"> <figure> <picture> <source class="responsive-img-srcset" srcset="/assets/posts/26-05-19-track-intent/overcooked-480.webp 480w,/assets/posts/26-05-19-track-intent/overcooked-800.webp 800w,/assets/posts/26-05-19-track-intent/overcooked-1400.webp 1400w," type="image/webp" sizes="95vw"></source> <img src="/assets/posts/26-05-19-track-intent/overcooked.png" class="img-fluid rounded z-depth-1" width="100%" height="auto" loading="eager" onerror="this.onerror=null; document.querySelectorAll('.responsive-img-srcset').forEach(function (n) { n.remove(); });"> </picture> </figure> </div> </div> <div class="caption"> In Overcooked, the objective is to sell as much soup as possible. This consists of delivering three onions to a pot, then bringing soup on a dish to customers. Adapted from Shah et al. (2019). </div> <p>I used pre-trained PPO checkpoints from the ZSC-Eval model zoo on the random0 layout. Quickly, I hit a wall, realizing the Overcooked models used a standard GRU instead of a ConvLSTM. The convolutional encoder took the 5x5 board observation and crushed it down into a flat 64-dimensional feature vector before it ever reached the recurrent layer.</p> <div class="row mt-3"> <div class="col-sm mt-3 mt-md-0"> <figure> <picture> <source class="responsive-img-srcset" srcset="/assets/posts/26-05-19-track-intent/architecture_comparison-480.webp 480w,/assets/posts/26-05-19-track-intent/architecture_comparison-800.webp 800w,/assets/posts/26-05-19-track-intent/architecture_comparison-1400.webp 1400w," type="image/webp" sizes="95vw"></source> <img src="/assets/posts/26-05-19-track-intent/architecture_comparison.png" class="img-fluid rounded z-depth-1" width="100%" height="auto" loading="eager" onerror="this.onerror=null; document.querySelectorAll('.responsive-img-srcset').forEach(function (n) { n.remove(); });"> </picture> </figure> </div> </div> <p>This flat representation also ruined any chance of clean causal interventions. In the single-agent Sokoban paper, the authors probed specific spatial coordinates. In my Overcooked setup, the 64-dimensional vector represents the entire state. I extracted the weights corresponding to the dish concept and injected it into the ego agent. The team score dropped by 20 points, but in terms of understanding why at a more granular level, I was stuck. Without spatial grounding, it is impossible to isolate what the agent perceived. The intervention forces the agent into a generic dish mode without specifying where the dish is located or who is holding it.</p> <h1 id="the-path-forward">The path forward</h1> <p>I think moving forward I have two options. 1) I could return to the ConvLSTM architecture. Mechanistic interpretability in spatial environments given current techniques requires the hidden state to map directly to grid cells. I’ll need to write a procedural generation algorithm to build Sokoban levels that strictly require two players to push separate boxes simultaneously. 2) I could try to use sparse autoencoders to see if I can decompose the flat 64-element GRU representation into cell-specific planning features.</p> <p>Another thing I realized is that even if the ConvLSTM architecture or SAEs work, l need to train the agents without parameter sharing. Using MAPPO with shared weights introduces a massive confound for theory-of-mind research. If both agents share the same neural network, any decodable intent is potentially an artifact of the shared parameters rather than genuine observation-based inference. Setting up RL environments for interpretability research demands rigorous engineering, and I have some rebuilding to do.</p> <h1 id="sources">Sources</h1> <p>Bush, T., Chung, S., Anwar, U., Garriga-Alonso, A., &amp; Krueger, D. (2025). Interpreting Emergent Planning in Model-free Reinforcement Learning.</p> <p>Carroll, M., Shah, R., Ho, M. K., Grifﬁths, T. L., Seshia, S. A., Abbeel, P., &amp; Dragan, A. (2019). On the Utility of Learning about Humans for Human-AI Coordination.</p> </div> </article> <br> <hr> <br> <h2 class="text-3xl font-semibold mb-4 mt-12">Enjoy Reading This Article?</h2> <p class="mb-2">Here are some more articles you might like to read next:</p> <ul class="list-disc pl-7 my-3 space-y-2 marker:text-[var(--global-theme-color)]"> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="https://blog.google/technology/ai/google-gemini-update-flash-ai-assistant-io-2024/" target="_blank" rel="noopener noreferrer">Google Gemini updates: Flash 1.5, Gemma 2 and Project Astra</a> <svg width="1rem" height="1rem" viewbox="0 0 30 30" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"> <path d="M17 13.5v6H5v-12h6m3-3h6v6m0-6-9 9" class="icon_svg-stroke" stroke="#999" stroke-width="1.5" fill="none" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round"></path> </svg> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="https://medium.com/@al-folio/displaying-external-posts-on-your-al-folio-blog-b60a1d241a0a?source=rss-17feae71c3c4------2" target="_blank" rel="noopener noreferrer">Displaying External Posts on Your al-folio Blog</a> <svg width="1rem" height="1rem" viewbox="0 0 30 30" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"> <path d="M17 13.5v6H5v-12h6m3-3h6v6m0-6-9 9" class="icon_svg-stroke" stroke="#999" stroke-width="1.5" fill="none" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round"></path> </svg> </li> </ul> </div> </div> <footer class="fixed-bottom" role="contentinfo"> <div class="container mt-0"> © Copyright 2026 Calvin K. Cao. Powered by <a href="https://jekyllrb.com/" target="_blank" rel="external nofollow noopener">Jekyll</a> with <a href="https://github.com/alshedivat/al-folio" rel="external nofollow noopener" target="_blank">al-folio</a> theme. </div> </footer> <script>
+  window.alFolio = {
+    compatBootstrap: false
+  };
+</script> <script src="/assets/js/nav-toggle.js?v=141bd79a73ebc0f0b6ea58e440ae79fc"></script> <script defer src="https://cdn.jsdelivr.net/npm/masonry-layout@4.2.2/dist/masonry.pkgd.min.js" integrity="sha256-Nn1q/fx0H7SNLZMQ5Hw5JLaTRZp0yILA/FRexe19VdI=" crossorigin="anonymous"></script> <script defer src="https://cdn.jsdelivr.net/npm/imagesloaded@5.0.0/imagesloaded.pkgd.min.js" integrity="sha256-htrLFfZJ6v5udOG+3kNLINIKh2gvoKqwEhHYfTTMICc=" crossorigin="anonymous"></script> <script defer src="/assets/js/masonry.js?v=e49affc7bd2646f6acdad1dbe02c2359" type="text/javascript"></script> <script defer type="text/javascript" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script> <script src="/assets/al_math/js/mathjax-setup.js"></script> <script defer src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6" crossorigin="anonymous"></script> <script src="/assets/js/tooltips-setup.js?v=fe487e99db6c43751e6e7bdb2d6a0611"></script> <script src="/assets/js/no_defer.js?v=53b1b1a645525975c963ce8bf8bfefcf"></script> <script defer src="/assets/js/common.js?v=87baac90f765f2f3362dcf6aaf312a8a"></script> <script defer src="/assets/js/copy_code.js?v=c8a01c11a92744d44b093fc3bda915df" type="text/javascript"></script> <script defer src="/assets/js/jupyter_new_tab.js?v=896d254890d9b47f0281f63bfccf0dee"></script> <script async src="https://d1bxh8uas1mnw7.cloudfront.net/assets/embed.js"></script> <script async src="https://badge.dimensions.ai/badge.js"></script> <script defer src="https://cdn.jsdelivr.net/npm/medium-zoom@1.1.0/dist/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous"></script> <script defer src="/assets/al_img_tools/js/zoom.js"></script> <script defer src="/assets/js/progress-bar.js?v=499464c5c63ced6cf7ad62509f1e2610" type="text/javascript"></script> <script src="https://cdn.jsdelivr.net/npm/vanilla-back-to-top@7.2.1/dist/vanilla-back-to-top.min.js" integrity="sha256-uMJJ3EoTyfRBoTbR+lrfu1uRQ87RZG8AR3cVNuQVeFg=" crossorigin="anonymous"></script> <script>
+    addBackToTop();
+  </script> <script type="module" src="/assets/al_search/js/search/ninja-keys.min.js"></script> <ninja-keys hidebreadcrumbs noautoloadmdicons placeholder="Type to start searching"></ninja-keys> <script src="/assets/al_search/js/search-setup.js"></script> <script>
+// get the ninja-keys element
+const ninja = document.querySelector('ninja-keys');
+
+// add the home and posts menu items
+ninja.data = [{
+    id: "nav-about",
+    title: "about",
+    section: "Navigation",
+    handler: () => {
+      window.location.href = "/";
+    },
+  },{id: "nav-blog",
+          title: "blog",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/blog/";
+          },
+        },{id: "nav-cv",
+          title: "CV",
+          description: "This is a description of the page. You can modify it in '_pages/cv.md'. You can also change or remove the top pdf download button.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/cv/";
+          },
+        },{id: "post-do-rl-agents-track-each-other-39-s-intent-part-1",
+        
+          title: "Do RL Agents Track Each Other's Intent? (Part 1)",
+        
+        description: "Linear probes decode partner intent from RL hidden states, but architecture determines whether any of it is interpretable.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/blog/2026/track-intent/";
+          
+        },
+      },{id: "post-google-gemini-updates-flash-1-5-gemma-2-and-project-astra",
+        
+          title: 'Google Gemini updates: Flash 1.5, Gemma 2 and Project Astra <svg width="1.2rem" height="1.2rem" top=".5rem" viewbox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path d="M17 13.5v6H5v-12h6m3-3h6v6m0-6-9 9" class="icon_svg-stroke" stroke="#999" stroke-width="1.5" fill="none" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round"></path></svg>',
+        
+        description: "We’re sharing updates across our Gemini family of models and a glimpse of Project Astra, our vision for the future of AI assistants.",
+        section: "Posts",
+        handler: () => {
+          
+            window.open("https://blog.google/technology/ai/google-gemini-update-flash-ai-assistant-io-2024/", "_blank");
+          
+        },
+      },{id: "post-displaying-external-posts-on-your-al-folio-blog",
+        
+          title: 'Displaying External Posts on Your al-folio Blog <svg width="1.2rem" height="1.2rem" top=".5rem" viewbox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path d="M17 13.5v6H5v-12h6m3-3h6v6m0-6-9 9" class="icon_svg-stroke" stroke="#999" stroke-width="1.5" fill="none" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round"></path></svg>',
+        
+        description: "",
+        section: "Posts",
+        handler: () => {
+          
+            window.open("https://medium.com/@al-folio/displaying-external-posts-on-your-al-folio-blog-b60a1d241a0a?source=rss-17feae71c3c4------2", "_blank");
+          
+        },
+      },{id: "books-the-godfather",
+          title: 'The Godfather',
+          description: "",
+          section: "Books",handler: () => {
+              window.location.href = "/books/the_godfather/";
+            },},{id: "news-a-simple-inline-announcement",
+          title: 'A simple inline announcement.',
+          description: "",
+          section: "News",},{id: "news-a-long-announcement-with-details",
+          title: 'A long announcement with details',
+          description: "",
+          section: "News",handler: () => {
+              window.location.href = "/news/announcement_2/";
+            },},{id: "news-a-simple-inline-announcement-with-markdown-emoji-sparkles-smile",
+          title: 'A simple inline announcement with Markdown emoji! <img class="emoji" title=":sparkles:" alt=":sparkles:" src="https://github.githubassets.com/images/icons/emoji/unicode/2728.png" height="20" width="20"> <img class="emoji" title=":smile:" alt=":smile:" src="https://github.githubassets.com/images/icons/emoji/unicode/1f604.png" height="20" width="20">',
+          description: "",
+          section: "News",},{id: "projects-project-1",
+          title: 'project 1',
+          description: "with background image",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/1_project/";
+            },},{id: "projects-project-2",
+          title: 'project 2',
+          description: "a project with a background image and giscus comments",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/2_project/";
+            },},{id: "projects-project-3-with-very-long-name",
+          title: 'project 3 with very long name',
+          description: "a project that redirects to another website",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/3_project/";
+            },},{id: "projects-project-4",
+          title: 'project 4',
+          description: "another without an image",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/4_project/";
+            },},{id: "projects-project-5",
+          title: 'project 5',
+          description: "a project with a background image",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/5_project/";
+            },},{id: "projects-project-6",
+          title: 'project 6',
+          description: "a project with no image",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/6_project/";
+            },},{id: "projects-project-7",
+          title: 'project 7',
+          description: "with background image",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/7_project/";
+            },},{id: "projects-project-8",
+          title: 'project 8',
+          description: "an other project with a background image and giscus comments",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/8_project/";
+            },},{id: "projects-project-9",
+          title: 'project 9',
+          description: "another project with an image 🎉",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/9_project/";
+            },},{id: "teachings-data-science-fundamentals",
+          title: 'Data Science Fundamentals',
+          description: "This course covers the foundational aspects of data science, including data collection, cleaning, analysis, and visualization. Students will learn practical skills for working with real-world datasets.",
+          section: "Teachings",handler: () => {
+              window.location.href = "/teachings/data-science-fundamentals/";
+            },},{id: "teachings-introduction-to-machine-learning",
+          title: 'Introduction to Machine Learning',
+          description: "This course provides an introduction to machine learning concepts, algorithms, and applications. Students will learn about supervised and unsupervised learning, model evaluation, and practical implementations.",
+          section: "Teachings",handler: () => {
+              window.location.href = "/teachings/introduction-to-machine-learning/";
+            },},{
+        id: 'social-cv',
+        title: 'CV',
+        section: 'Socials',
+        handler: () => {
+          window.open("/assets/pdf/example_pdf.pdf", "_blank");
+        },
+      },{
+        id: 'social-email',
+        title: 'email',
+        section: 'Socials',
+        handler: () => {
+          window.open("mailto:%79%6F%75@%65%78%61%6D%70%6C%65.%63%6F%6D", "_blank");
+        },
+      },{
+        id: 'social-inspire',
+        title: 'Inspire HEP',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://inspirehep.net/authors/1010907", "_blank");
+        },
+      },{
+        id: 'social-rss',
+        title: 'RSS Feed',
+        section: 'Socials',
+        handler: () => {
+          window.open("/feed.xml", "_blank");
+        },
+      },{
+        id: 'social-scholar',
+        title: 'Google Scholar',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://scholar.google.com/citations?user=qc6CJjYAAAAJ", "_blank");
+        },
+      },{
+        id: 'social-custom_social',
+        title: 'Custom_social',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://www.alberteinstein.com/", "_blank");
+        },
+      },{
+      id: 'light-theme',
+      title: 'Change theme to light',
+      description: 'Change the theme of the site to Light',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("light");
+      },
+    },
+    {
+      id: 'dark-theme',
+      title: 'Change theme to dark',
+      description: 'Change the theme of the site to Dark',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("dark");
+      },
+    },
+    {
+      id: 'system-theme',
+      title: 'Use system default theme',
+      description: 'Change the theme of the site to System Default',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("system");
+      },
+    },];
+
+</script> <script src="/assets/al_search/js/shortcut-key.js"></script> </body> </html>
