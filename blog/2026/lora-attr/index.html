@@ -1,0 +1,174 @@
+<!DOCTYPE html> <html lang="en"> <head> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> <meta charset="utf-8"> <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"> <meta http-equiv="X-UA-Compatible" content="IE=edge"> <title> Four Failed Experiments in LoRA Attribution | Calvin K. Cao </title> <meta name="author" content="Calvin K. Cao"> <meta name="description" content="Post-hoc methods fail to untangle multi-LoRA generations."> <meta name="keywords" content="generative ai, human-ai coordination, multi-agent systems, reinforcement learning, Sokoban, Overcooked"> <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' data: https:; media-src 'self' https:; frame-src 'self' https:; connect-src 'self' https:;"> <style>
+  :root {
+    --max-content-width: 930px;
+  }
+</style> <link rel="preconnect" href="https://fonts.googleapis.com"> <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin> <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,400&amp;family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;display=swap"> <link rel="stylesheet" href="/assets/css/tailwind.css?v=50c64c15cbb9fd1ce6056fdb8bcb4b62"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css" integrity="sha256-MVopmdyC2tYTiJ8wlktf0uh0v4NgT+vNdyVFepi7Q0c=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/academicons@1.9.5/css/academicons.min.css" integrity="sha256-SzrCOBJbGVFMahewkgjwnApaV2+av1DwMAA+/QGLyZw=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/scholar-icons@1.0.3/css/scholar-icons.css" integrity="sha256-VY3hHVj/hNX3fYG6wtbA6TcKJQl7+FthzGSyIB64klY=" crossorigin="anonymous"> <link defer rel="stylesheet" href="/assets/css/jekyll-pygments-themes-github.css?v=591dab5a4e56573bf4ef7fd332894c99" media="" id="highlight_theme_light"> <link rel="shortcut icon" href="data:image/svg+xml,&lt;svg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%20100%20100%22&gt;&lt;text%20y=%22.9em%22%20font-size=%2290%22&gt;%F0%9F%AA%BF&lt;/text&gt;&lt;/svg&gt;"> <link rel="stylesheet" href="/assets/css/main.css?v=f0b101217084a90093badfe99ff9a7d1"> <link rel="canonical" href="https://calvinkcao.github.io/blog/2026/lora-attr/"> <link rel="stylesheet" href="/assets/css/site.css?v=e4d6e7ff87ef94d831adc78730dbd954"> </head> <body class="fixed-top-nav "> <header> <nav id="navbar" class="navbar navbar-light navbar-expand-sm fixed-top" role="navigation"> <div class="container"> <a class="navbar-brand title font-weight-lighter" href="/"> <span class="font-weight-bold">Calvin</span> K. Cao </a> <button class="navbar-toggler collapsed navbar-toggler-main" type="button" data-nav-toggle="navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"> <span class="sr-only">Toggle navigation</span> <span class="icon-bar top-bar"></span> <span class="icon-bar middle-bar"></span> <span class="icon-bar bottom-bar"></span> </button> <div class="collapse navbar-collapse navbar-collapse-main" id="navbarNav"> <ul class="navbar-nav navbar-menu-list flex-nowrap"> <li class="nav-item "> <a class="nav-link" href="/">about </a> </li> <li class="nav-item active"> <a class="nav-link" href="/blog/">blog </a> </li> <li class="nav-item "> <a class="nav-link" href="/cv/">CV </a> </li> <li class="nav-item"> <button id="search-toggle" type="button" title="Search" aria-label="Open search"> <span class="nav-link">ctrl k <i class="fa-solid fa-magnifying-glass"></i></span> </button> </li> </ul> </div> </div> </nav> <progress id="progress" value="0"> <div class="progress-container"> <span class="progress-bar"></span> </div> </progress> </header> <div class="container mt-5" role="main"> <div class="post"> <header class="post-header"> <h1 class="post-title">Four Failed Experiments in LoRA Attribution</h1> <p class="post-meta"> Created on June 05, 2026 </p> <p class="post-tags"> <a href="/blog/2026"> <i class="fa-solid fa-calendar fa-sm"></i> 2026 </a>   ·   <a href="/blog/tag/experiments"> <i class="fa-solid fa-hashtag fa-sm"></i> experiments</a>   <a href="/blog/tag/attribution"> <i class="fa-solid fa-hashtag fa-sm"></i> attribution</a>   <a href="/blog/tag/diffusion"> <i class="fa-solid fa-hashtag fa-sm"></i> diffusion</a>   ·   <a href="/blog/category/quick-experiments"> <i class="fa-solid fa-tag fa-sm"></i> quick-experiments</a> </p> </header> <article class="post-content"> <div id="markdown-content"> <blockquote> <h2 id="tldr-modular-image-generation-platforms-allow-users-to-stack-multiple-low-rank-adaptations-creating-a-need-to-attribute-specific-outputs-to-specific-adapters-at-scale-inspired-by-mlodozeniec-et-al-2024-i-tested-whether-cheap-post-hoc-methods-or-linear-approximations-bypass-the-massive-computational-cost-of-combinatorial-ablation-i-ran-experiments-across-five-different-methodologies-starting-from-simple-caching-tricks-up-to-complex-ddim-pseudo-ablation-they-all-failed-to-provide-correct-localized-attributions-the-non-linearities-of-the-forward-pass-and-the-trajectory-commitment-in-latent-space-mean-true-single-removal-ablation-remains-the-only-accurate-method">TLDR: Modular image generation platforms allow users to stack multiple Low-Rank Adaptations, creating a need to attribute specific outputs to specific adapters at scale. Inspired by Mlodozeniec et al. (2024), I tested whether cheap post-hoc methods or linear approximations bypass the massive computational cost of combinatorial ablation. I ran experiments across five different methodologies, starting from simple caching tricks up to complex DDIM pseudo-ablation. They all failed to provide correct localized attributions. The non-linearities of the forward pass and the trajectory commitment in latent space mean true single-removal ablation remains the only accurate method.</h2> </blockquote> <h2 id="multi-lora-attribution">Multi-LoRA attribution</h2> <p>On many popular AI image generation platforms, users stack multiple adapters simultaneously to customize base models, blending concepts, styles, and characters. The most popular adaptation method is Low Rank Adaptation, which simply adds the product of two low-rank matrices to a network’s weight matrices, allowing for efficient fine-tuning:</p> \[W_{\text{final}} = W_{\text{base}} + \sum_{i=1}^{N} \alpha_i \Delta W_i\] <p>When an output image contains harmful or copyrighted content, or looks terribly distorted, we must identify the responsible component. Image generation platforms want to attribute policy violations to individual uploaded files, and consumers want to know which adapter is mangling the output. The impact of individual adapters in a multi-adapter stack is difficult to analyze. The forward pass is nonlinear because of cross-attention softmax, layer normalization, and GELU activations. Simple weight inspection or linear activation assumptions fall short. Currently, the main method of determining which adapter in a stack is harmful is running combinatorial ablation, which requires generating images with every possible subset of adapters to isolate their effects. Even single-removal ablation requires full generation passes, scaling poorly for real-time applications.</p> <p>Mlodozeniec et al. (2024) used influence functions for scalable data attribution in base diffusion models. I wanted to find a similarly scalable attribution mechanism for multi-adapter setups, starting with the simplest possible approach and working my way up to more complex interventions as each hypothesis fell apart.</p> <h2 id="experiment-1-early-layer-activation-caching">Experiment 1 Early-layer activation caching</h2> <p>My first thought was straightforward. Since full ablation for every adapter takes tonnes of compute, I wanted to skip redundant calculations. Some prior literature reports that weight perturbations only affect the deeper layers of the UNet. If this was true, running the base model once and caching the early layer activations would allow me to reuse them across different adapter combo ablation passes.</p> <div class="row mt-3"> <div class="col-sm mt-3 mt-md-0"> <figure> <picture> <source class="responsive-img-srcset" srcset="/assets/posts/26-04-02-lora-attr/diagram_unet.svg" sizes="95vw"></source> <img src="/assets/posts/26-04-02-lora-attr/diagram_unet.svg" class="img-fluid rounded z-depth-1" width="100%" height="auto" loading="eager" onerror="this.onerror=null; document.querySelectorAll('.responsive-img-srcset').forEach(function (n) { n.remove(); });"> </picture> </figure> </div> </div> <div class="caption"> My initial caching setup. If adapter perturbations were truly confined to deeper layers, calculating the early blocks once and reusing those activations would let me skip redundant forward passes. </div> <p>I set up a test using Stable Diffusion v1.5, running 10 images under four different configurations. I used a baseline with no adapters, a Sketch style adapter, a Pokemon character adapter, and a combination of all three at a scale of 0.8. I measured the relative activation variance across these configurations for every single UNet block. The first block showed 60.9% relative variance across the configurations, and deeper layers hit 94.1% variance. The perturbations from the adapters propagate instantly through the network. Early-layer caching is a dead end.</p> <h2 id="experiment-2-sparse-autoencoders">Experiment 2 Sparse autoencoders</h2> <p>If early layers could not be cached, I wanted to see if I could decompose the activation-space perturbations directly. (I eventually realized this was naive, which I will get to in a bit.) Before running the decomposition, I set up three distinct components for testing: a global style modifier using a pre-trained freehand sketch checkpoint, a spatially localized subject using a Pokémon adapter trained on 833 captioned images, and a spatially localized object using a Backpack adapter trained on 20 images from a DreamBooth dataset.</p> <p>To build a baseline of real model activations, I took 100 standard text prompts and ran the base Stable Diffusion v1.5 model for 50 denoising steps. At 25 specific timesteps during each run, I extracted the output of the first mid-block attention layer. This layer outputs a tensor with an 8x8 spatial grid, which I average-pooled to collapse the spatial layout, resulting in a single 1280-dimensional vector. This process yielded 2,500 activation vectors.</p> <p>I trained a sparse autoencoder with 512 hidden dimensions and an L1 penalty of 0.001 on these average-pooled base activations to learn a dictionary of sparse latent features.</p> <p>To perform the attribution, I captured activations across three conditions. I extracted a base pass, single-adapter reference passes, and a mixed pass with all adapters active. Encoding these through the autoencoder yielded sparse latent vectors. I subtracted the baselines to isolate the latent perturbations. A Ridge regression confirmed the autoencoder preserved the adapter features, mapping latent perturbations back to activation perturbations with high accuracy.</p> <p>I applied an Ordinary Least Squares linear solver to decompose the mixed latent perturbation as a combination of reference perturbations. I needed to extract mixed activations from a real generation. I started with random Gaussian noise from a fixed seed and ran the denoising process using a prompt combining all three concepts, like “a pokemon creature on the left side of the image, a backpack on the right side, freehand sketch style”. Halfway through the 30-step denoising process at step 15, I paused the forward pass and extracted the activation tensor flowing through the attention block. I average-pooled this tensor across the spatial grid to collapse it into a single 1280-dimensional vector. Passing this through the trained autoencoder yielded the 512-dimensional mixed latent vector. I repeated this extraction for the isolated reference components.</p> <p>I set up the regression using the 512 hidden dimensions as independent samples. This created a system of 512 equations to solve for the three unknown adapter scales.</p> \[\Delta z_{\text{mixed}} \approx \sum \beta_i \Delta z_{\text{ref},i}\] <p>Using a closed-form solver, the regression failed completely. In a three-adapter mixture with true scales of 0.80, 0.40, and 0.20, the solver recovered scales of 0.73, 0.14, and 0.05. The dominant sketch style component showed a 9% error, while the weaker localized components suffered massive 65% and 75% errors. Because of the model’s internal nonlinearities, the mixed activations are not a clean linear sum of the individual references. The solver forced the coefficients to align heavily with the dominant sketch style to minimize the squared error over the 512 dimensions, drowning out the signal of the weaker components.</p> <p>Looking back, I should have seen this failure coming. My fundamental mistake was assuming that stacking adapters creates a clean linear sum of their individual activation features. The UNet is built on non-linear operations, particularly the softmax function inside the cross-attention blocks. Because softmax forces the outputs to sum to one, a dominant style adapter that pushes its weights higher will inherently squash the values of any weaker components in that same layer. The mixed activation state is never a simple superposition of the isolated references. Expecting an ordinary linear equation solver to untangle a non-linear normalization process was doomed to fail.</p> <h2 id="experiment-3-per-lora-delta-gradient-attribution">Experiment 3 Per-LoRA-delta gradient attribution</h2> <p>If the forward pass is a nonlinear mess, looking backward at the gradients seemed like a viable alternative. I adapted discriminative gradient attribution to weight-delta space. I defined a spatial bounding box around a specific subject, computed the MSE loss of the noise prediction inside the box, and backpropagated the loss to the adapter weights. To remove weight-magnitude bias, I divided the scores by the Frobenius norm of the weights.</p> <p>I tested this approach on 30 images generated with the Sketch, Pokemon, and Backpack adapters. I used custom spatial layout prompts designed to force physical separation, such as “a pokemon creature on the left side of the image, a backpack on the right side”. I manually annotated 99 bounding boxes to separate the subjects.</p> <p>The top-1 accuracy for the Pokemon bounding box was exactly 0%. The mean attribution shares inside the boxes were almost perfectly uniform across all three adapters, hovering around 33.3% each. My best guess for why this happens is that the spatial signal washes out completely during backpropagation. The attention projection weights act globally on latent states. When you spatially mask the loss at the output and backpropagate, the localized signal disperses globally across the projection matrices.</p> <h2 id="experiment-4-invert-once-pseudo-ablation">Experiment 4 Invert-once pseudo-ablation</h2> <p>This led to my final attempt. If true single-removal ablation is too expensive because it requires full generation passes from pure noise, simulating ablation directly in latent space partway through the process felt promising.</p> <p>To evaluate this, we need to distinguish between true ablation and pseudo-ablation. A true ablation map is generated by running a complete image generation from pure noise with one adapter entirely removed, then comparing the final output to the full-stack generation to isolate the adapter’s impact. A pseudo-ablation map attempts to shortcut this. I inverted the generated image via DDIM inversion to cache intermediate latents at various timesteps. To approximate the removal of a specific adapter, I set its scale to zero and ran a short 10-step denoising path starting from that cached latent. I calculated an attribution ranking by determining which adapter’s removal caused the largest deviation from the original image.</p> <p>I compared these pseudo-removal maps to true ablation maps across 20 general-purpose prompts, using prompts like “a cat sitting on a wooden table” to run the baseline generations. Unfortunately, the spatial correlation between the pseudo and true maps was non-existent. The top-1 attribution ranking accuracy hit 3.75%, performing worse than a random guess. I ran a diagnostic sweep increasing the denoising steps up to 30, and the correlation decreased monotonically.</p> <p>I suppose the root cause here is trajectory commitment. A cached latent at step 14 is not a neutral state. It is structurally committed to the joint composition of all active adapters. Resuming denoising with one adapter missing forces the model to complete a trajectory starting from an inconsistent layout. The cached latent fails to converge to the true ablated trajectory.</p> <h2 id="future-work">Future work</h2> <p>Post-hoc linear methods and cached latent denoising are mathematical dead-ends for this specific problem. Sparse autoencoders to quantify localized contribution in a mixed setup. True single-removal ablation remains the only accurate method for multi-adapter environments. It is possible that multi-adapter setups are fundamentally non-untangleable. Mechanistic interpretability circuit analysis to map specific pathways directly inside the UNet remains a stretch goal for future work.</p> <h2 id="sources">Sources</h2> <p>Mlodozeniec, B., Eschenhagen, R., Bae, J., Immer, A., Krueger, D., &amp; Turner, R. (2024). Influence Functions for Scalable Data Attribution in Diffusion Models. <a href="https://doi.org/10.32388/BOJDXM" rel="external nofollow noopener" target="_blank">https://doi.org/10.32388/BOJDXM</a></p> </div> </article> <br> <hr> <br> <h2 class="text-3xl font-semibold mb-4 mt-12">Enjoy Reading This Article?</h2> <p class="mb-2">Here are some more articles you might like to read next:</p> <ul class="list-disc pl-7 my-3 space-y-2 marker:text-[var(--global-theme-color)]"> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/blog/2026/track-intent/">Do RL Agents Track Each Other's Intent? (Part 1)</a> </li> </ul> </div> </div> <footer class="fixed-bottom" role="contentinfo"> <div class="container mt-0"> © Copyright 2026 Calvin K. Cao. </div> </footer> <script>
+  window.alFolio = {
+    compatBootstrap: false
+  };
+</script> <script src="/assets/js/nav-toggle.js?v=141bd79a73ebc0f0b6ea58e440ae79fc"></script> <script defer src="https://cdn.jsdelivr.net/npm/masonry-layout@4.2.2/dist/masonry.pkgd.min.js" integrity="sha256-Nn1q/fx0H7SNLZMQ5Hw5JLaTRZp0yILA/FRexe19VdI=" crossorigin="anonymous"></script> <script defer src="https://cdn.jsdelivr.net/npm/imagesloaded@5.0.0/imagesloaded.pkgd.min.js" integrity="sha256-htrLFfZJ6v5udOG+3kNLINIKh2gvoKqwEhHYfTTMICc=" crossorigin="anonymous"></script> <script defer src="/assets/js/masonry.js?v=e49affc7bd2646f6acdad1dbe02c2359" type="text/javascript"></script> <script defer type="text/javascript" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script> <script src="/assets/al_math/js/mathjax-setup.js"></script> <script defer src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6" crossorigin="anonymous"></script> <script src="/assets/js/tooltips-setup.js?v=fe487e99db6c43751e6e7bdb2d6a0611"></script> <script src="/assets/js/no_defer.js?v=53b1b1a645525975c963ce8bf8bfefcf"></script> <script defer src="/assets/js/common.js?v=87baac90f765f2f3362dcf6aaf312a8a"></script> <script defer src="/assets/js/copy_code.js?v=c8a01c11a92744d44b093fc3bda915df" type="text/javascript"></script> <script defer src="/assets/js/jupyter_new_tab.js?v=896d254890d9b47f0281f63bfccf0dee"></script> <script async src="https://d1bxh8uas1mnw7.cloudfront.net/assets/embed.js"></script> <script async src="https://badge.dimensions.ai/badge.js"></script> <script defer src="https://cdn.jsdelivr.net/npm/medium-zoom@1.1.0/dist/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous"></script> <script defer src="/assets/al_img_tools/js/zoom.js"></script> <script defer src="/assets/js/progress-bar.js?v=499464c5c63ced6cf7ad62509f1e2610" type="text/javascript"></script> <script src="https://cdn.jsdelivr.net/npm/vanilla-back-to-top@7.2.1/dist/vanilla-back-to-top.min.js" integrity="sha256-uMJJ3EoTyfRBoTbR+lrfu1uRQ87RZG8AR3cVNuQVeFg=" crossorigin="anonymous"></script> <script>
+    addBackToTop();
+  </script> <script type="module" src="/assets/al_search/js/search/ninja-keys.min.js"></script> <ninja-keys hidebreadcrumbs noautoloadmdicons placeholder="Type to start searching"></ninja-keys> <script src="/assets/al_search/js/search-setup.js"></script> <script>
+// get the ninja-keys element
+const ninja = document.querySelector('ninja-keys');
+
+// add the home and posts menu items
+ninja.data = [{
+    id: "nav-about",
+    title: "about",
+    section: "Navigation",
+    handler: () => {
+      window.location.href = "/";
+    },
+  },{id: "nav-blog",
+          title: "blog",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/blog/";
+          },
+        },{id: "nav-cv",
+          title: "CV",
+          description: "This is a description of the page. You can modify it in '_pages/cv.md'. You can also change or remove the top pdf download button.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/cv/";
+          },
+        },{id: "post-four-failed-experiments-in-lora-attribution",
+        
+          title: "Four Failed Experiments in LoRA Attribution",
+        
+        description: "Post-hoc methods fail to untangle multi-LoRA generations.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/blog/2026/lora-attr/";
+          
+        },
+      },{id: "post-do-rl-agents-track-each-other-39-s-intent-part-1",
+        
+          title: "Do RL Agents Track Each Other's Intent? (Part 1)",
+        
+        description: "Linear probes decode partner intent from RL hidden states, but architecture determines whether any of it is interpretable.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/blog/2026/track-intent/";
+          
+        },
+      },{id: "books-the-godfather",
+          title: 'The Godfather',
+          description: "",
+          section: "Books",handler: () => {
+              window.location.href = "/books/the_godfather/";
+            },},{id: "news-a-simple-inline-announcement",
+          title: 'A simple inline announcement.',
+          description: "",
+          section: "News",},{id: "news-a-long-announcement-with-details",
+          title: 'A long announcement with details',
+          description: "",
+          section: "News",handler: () => {
+              window.location.href = "/news/announcement_2/";
+            },},{id: "news-a-simple-inline-announcement-with-markdown-emoji-sparkles-smile",
+          title: 'A simple inline announcement with Markdown emoji! <img class="emoji" title=":sparkles:" alt=":sparkles:" src="https://github.githubassets.com/images/icons/emoji/unicode/2728.png" height="20" width="20"> <img class="emoji" title=":smile:" alt=":smile:" src="https://github.githubassets.com/images/icons/emoji/unicode/1f604.png" height="20" width="20">',
+          description: "",
+          section: "News",},{id: "projects-project-1",
+          title: 'project 1',
+          description: "with background image",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/1_project/";
+            },},{id: "projects-project-2",
+          title: 'project 2',
+          description: "a project with a background image and giscus comments",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/2_project/";
+            },},{id: "projects-project-3-with-very-long-name",
+          title: 'project 3 with very long name',
+          description: "a project that redirects to another website",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/3_project/";
+            },},{id: "projects-project-4",
+          title: 'project 4',
+          description: "another without an image",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/4_project/";
+            },},{id: "projects-project-5",
+          title: 'project 5',
+          description: "a project with a background image",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/5_project/";
+            },},{id: "projects-project-6",
+          title: 'project 6',
+          description: "a project with no image",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/6_project/";
+            },},{id: "projects-project-7",
+          title: 'project 7',
+          description: "with background image",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/7_project/";
+            },},{id: "projects-project-8",
+          title: 'project 8',
+          description: "an other project with a background image and giscus comments",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/8_project/";
+            },},{id: "projects-project-9",
+          title: 'project 9',
+          description: "another project with an image 🎉",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/9_project/";
+            },},{id: "teachings-data-science-fundamentals",
+          title: 'Data Science Fundamentals',
+          description: "This course covers the foundational aspects of data science, including data collection, cleaning, analysis, and visualization. Students will learn practical skills for working with real-world datasets.",
+          section: "Teachings",handler: () => {
+              window.location.href = "/teachings/data-science-fundamentals/";
+            },},{id: "teachings-introduction-to-machine-learning",
+          title: 'Introduction to Machine Learning',
+          description: "This course provides an introduction to machine learning concepts, algorithms, and applications. Students will learn about supervised and unsupervised learning, model evaluation, and practical implementations.",
+          section: "Teachings",handler: () => {
+              window.location.href = "/teachings/introduction-to-machine-learning/";
+            },},{
+        id: 'social-cv',
+        title: 'CV',
+        section: 'Socials',
+        handler: () => {
+          window.open("/assets/pdf/example_pdf.pdf", "_blank");
+        },
+      },{
+        id: 'social-email',
+        title: 'email',
+        section: 'Socials',
+        handler: () => {
+          window.open("mailto:%79%6F%75@%65%78%61%6D%70%6C%65.%63%6F%6D", "_blank");
+        },
+      },{
+        id: 'social-inspire',
+        title: 'Inspire HEP',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://inspirehep.net/authors/1010907", "_blank");
+        },
+      },{
+        id: 'social-rss',
+        title: 'RSS Feed',
+        section: 'Socials',
+        handler: () => {
+          window.open("/feed.xml", "_blank");
+        },
+      },{
+        id: 'social-scholar',
+        title: 'Google Scholar',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://scholar.google.com/citations?user=qc6CJjYAAAAJ", "_blank");
+        },
+      },{
+        id: 'social-custom_social',
+        title: 'Custom_social',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://www.alberteinstein.com/", "_blank");
+        },
+      },];
+
+</script> <script src="/assets/al_search/js/shortcut-key.js"></script> </body> </html>
