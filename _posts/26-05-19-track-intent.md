@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Do RL Agents Track Each Other's Intent? (Part 1)
+title: Do Model-free RL Agents Represent Each Other's Intent? (Part 1)
 date: 2026-05-19 20:01:02
 description: Linear probes decode partner intent from RL hidden states, but architecture determines whether any of it is interpretable.
 tags: formatting images
