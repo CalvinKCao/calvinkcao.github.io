@@ -1,7 +1,6 @@
 ---
 layout: post
-title: Methods to Improve the Sensitivity of Wheat Genomic Prediction
-Models
+title: Methods to Improve the Sensitivity of Wheat Genomic Prediction Models
 date: 2024-05-02 19:03:02
 description: 
 categories: quick-experiments
