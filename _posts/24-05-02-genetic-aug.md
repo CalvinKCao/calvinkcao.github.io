@@ -1,0 +1,13 @@
+---
+layout: post
+title: Methods to Improve the Sensitivity of Wheat Genomic Prediction
+Models
+date: 2024-05-02 19:03:02
+description: 
+categories: quick-experiments
+thumbnail: assets/img/9.jpg
+---
+
+[Technical Write-up](https://github.com/CalvinKCao/genetic-data-augmentation/blob/main/REPORT.pdf) | [GitHub](https://github.com/CalvinKCao/genetic-data-augmentation)
+
+This was my second-year undergraduate research project at Western University, supervised by Professor Mike Domaratzki. The core problem is one that shows up across a lot of applied ML work: when your training data is heavily imbalanced, models learn to systematically ignore the minority class. In this case the minority class was high-performing wheat variants, but the failure mode generalizes. I tested three ways to fix it: classification threshold tuning, swapping the baseline linear mixed model (GBLUP) for SVM and XGBoost, and synthetic data augmentation via SMOTE and SMOGN. SVM consistently outperformed XGBoost on this high-dimensional dataset. More interestingly, GBLUP still beat both non-linear models once post-training threshold optimization was applied, suggesting the non-linear models were losing structural information encoded in the genomic relationship matrix. The augmentation results were even poorer. Synthetic oversampling reliably made minority-class performance worse, not better.
