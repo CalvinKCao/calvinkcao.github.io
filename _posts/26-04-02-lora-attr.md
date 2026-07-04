@@ -20,7 +20,7 @@ When an output image contains harmful or copyrighted content, or looks terribly 
 
 Mlodozeniec et al. (2024) used influence functions for scalable data attribution in base diffusion models. I wanted to find a similarly scalable attribution mechanism for multi-adapter setups, starting with the simplest possible approach and working my way up to more complex interventions as each hypothesis fell apart.
 
-## Experiment 1 Early-layer activation caching
+## 1 Early-layer activation caching
 
 My first thought was straightforward. Since full ablation for every adapter takes tonnes of compute, I wanted to skip redundant calculations. Some prior literature reports that weight perturbations only affect the deeper layers of the UNet. If this was true, running the base model once and caching the early layer activations would allow me to reuse them across different adapter combo ablation passes.
 
@@ -35,7 +35,7 @@ My first thought was straightforward. Since full ablation for every adapter take
 
 I set up a test using Stable Diffusion v1.5, running 10 images under four different configurations. I used a baseline with no adapters, a Sketch style adapter, a Pokemon character adapter, and a combination of all three at a scale of 0.8. I measured the relative activation variance across these configurations for every single UNet block. The first block showed 60.9% relative variance across the configurations, and deeper layers hit 94.1% variance. The perturbations from the adapters propagate instantly through the network. Early-layer caching is a dead end.
 
-## Experiment 2 Sparse autoencoders
+## 2 Sparse autoencoders
 
 If early layers could not be cached, I wanted to see if I could decompose the activation-space perturbations directly. (I eventually realized this was naive, which I will get to in a bit.) Before running the decomposition, I set up three distinct components for testing: a global style modifier using a pre-trained freehand sketch checkpoint, a spatially localized subject using a Pokémon adapter trained on 833 captioned images, and a spatially localized object using a Backpack adapter trained on 20 images from a DreamBooth dataset.
 
@@ -55,7 +55,7 @@ Using a closed-form solver, the regression failed completely. In a three-adapter
 
 Looking back, I should have seen this failure coming. My fundamental mistake was assuming that stacking adapters creates a clean linear sum of their individual activation features. The UNet is built on non-linear operations, particularly the softmax function inside the cross-attention blocks. Because softmax forces the outputs to sum to one, a dominant style adapter that pushes its weights higher will inherently squash the values of any weaker components in that same layer. The mixed activation state is never a simple superposition of the isolated references. Expecting an ordinary linear equation solver to untangle a non-linear normalization process was doomed to fail.
 
-## Experiment 3 Per-LoRA-delta gradient attribution
+## 3 Per-LoRA-delta gradient attribution
 
 If the forward pass is a nonlinear mess, looking backward at the gradients seemed like a viable alternative. I adapted discriminative gradient attribution to weight-delta space. I defined a spatial bounding box around a specific subject, computed the MSE loss of the noise prediction inside the box, and backpropagated the loss to the adapter weights. To remove weight-magnitude bias, I divided the scores by the Frobenius norm of the weights.
 
@@ -63,7 +63,7 @@ I tested this approach on 30 images generated with the Sketch, Pokemon, and Back
 
 The top-1 accuracy for the Pokemon bounding box was exactly 0%. The mean attribution shares inside the boxes were almost perfectly uniform across all three adapters, hovering around 33.3% each. My best guess for why this happens is that the spatial signal washes out completely during backpropagation. The attention projection weights act globally on latent states. When you spatially mask the loss at the output and backpropagate, the localized signal disperses globally across the projection matrices.
 
-## Experiment 4 Invert-once pseudo-ablation
+## 4 Invert-once pseudo-ablation
 
 This led to my final attempt. If true single-removal ablation is too expensive because it requires full generation passes from pure noise, simulating ablation directly in latent space partway through the process felt promising.
 
